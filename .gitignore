@@ -3,3 +3,4 @@ __pycache__/
 *.pyo
 .env
 *.png        # remove this line if you want to commit your ArUco marker images
+*.mp4        # remove this line if you want to commit your test flight videos
