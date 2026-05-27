@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UAV Delivery Control</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #6b7280;
+      --border: #d9e0ea;
+      --primary: #2563eb;
+      --primary-light: #e8f0ff;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", sans-serif;
+      padding: 32px 16px;
+    }
+
+    .app {
+      width: min(900px, 100%);
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .title-small {
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    h1 {
+      font-size: 28px;
+      line-height: 1.1;
+    }
+
+    .connection {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .dot.online { background: var(--success); }
+    .dot.flying {
+      background: var(--warning);
+      animation: pulse 1s infinite;
+    }
+    .dot.error { background: var(--danger); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .status-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .status-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .status-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .progress-track {
+      height: 8px;
+      width: 100%;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--primary);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .stations {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .station {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      cursor: pointer;
+      background: #ffffff;
+      transition: 0.15s ease;
+    }
+
+    .station:hover:not(.unavailable) {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .station.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .station.unavailable {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .station-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .station-name {
+      font-weight: 700;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge.mapped {
+      background: #dcfce7;
+      color: var(--success);
+    }
+
+    .badge.unscanned {
+      background: #fef3c7;
+      color: var(--warning);
+    }
+
+    .badge.unavailable {
+      background: #e5e7eb;
+      color: var(--muted);
+    }
+
+    .station-meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .log {
+      height: 150px;
+      overflow-y: auto;
+      background: #0f172a;
+      color: #dbeafe;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 18px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .log-row {
+      display: flex;
+      gap: 10px;
+      padding: 3px 0;
+    }
+
+    .log-ts {
+      color: #94a3b8;
+      flex-shrink: 0;
+    }
+
+    .log-row.ok .log-msg { color: #86efac; }
+    .log-row.warn .log-msg { color: #fde68a; }
+    .log-row.err .log-msg { color: #fca5a5; }
+    .log-row.info .log-msg { color: #bfdbfe; }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #e5e7eb;
+      color: var(--text);
+      transition: 0.15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .danger {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    .drone-pos {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    @media (max-width: 720px) {
+      header,
+      .cards,
+      .stations,
+      .actions {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .connection {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <header>
+        <div>
+          <p class="title-small">Tello Robomaster TT</p>
+          <h1>UAV Delivery Control</h1>
+        </div>
+
+        <div class="connection">
+          <span class="dot" id="conn-dot"></span>
+          <span id="conn-label">connecting...</span>
+        </div>
+      </header>
+
+      <div class="cards">
+        <div class="status-card">
+          <div class="status-label">Mission state</div>
+          <div class="status-value" id="m-state">Idle</div>
+        </div>
+        <div class="status-card">
+          <div class="status-label">Stations mapped</div>
+          <div class="status-value" id="m-mapped">— / —</div>
+        </div>
+        <div class="status-card">
+          <div class="status-label">Target station</div>
+          <div class="status-value" id="m-target">None</div>
+        </div>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-fill" id="progress"></div>
+      </div>
+
+      <h2 class="section-title">Delivery stations</h2>
+      <div class="stations" id="station-grid">
+        <div style="color: var(--muted); font-size: 14px; grid-column: span 2;">
+          Waiting for Flask server…
+        </div>
+      </div>
+
+      <h2 class="section-title">Mission log</h2>
+      <div class="log" id="log"></div>
+
+      <div class="actions">
+        <button id="btn-scan" onclick="startScan()">Scan arena</button>
+        <button class="primary" id="btn-dispatch" disabled onclick="dispatch()">Dispatch</button>
+        <button class="danger" onclick="abort()">Abort</button>
+      </div>
+
+      <div class="drone-pos" id="drone-pos">Vicon · waiting for position data</div>
+    </section>
+  </main>
+
+  <script>
+    const stations = [
+      { id: 0, name: "Station A", aruco: "ID 0", pos: { x: 1.20, y: 0.45 }, status: "mapped" },
+      { id: 1, name: "Station B", aruco: "ID 1", pos: { x: -0.80, y: 1.10 }, status: "mapped" },
+      { id: 2, name: "Station C", aruco: "ID 2", pos: null, status: "unscanned" },
+      { id: 3, name: "Station D", aruco: "ID 3", pos: null, status: "unavailable" },
+    ];
+
+    let selectedId = null;
+    let missionState = "idle";
+    let progressInterval = null;
+
+    function ts() {
+      return new Date().toTimeString().slice(0, 8);
+    }
+
+    function log(type, msg) {
+      const el = document.getElementById("log");
+      const row = document.createElement("div");
+      row.className = `log-row ${type}`;
+      row.innerHTML = `<span class="log-ts">${ts()}</span><span class="log-msg">${msg}</span>`;
+      el.appendChild(row);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function setState(s) {
+      missionState = s;
+      document.getElementById("m-state").textContent = s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
+
+      const dot = document.getElementById("conn-dot");
+      const lbl = document.getElementById("conn-label");
+
+      if (s === "idle") {
+        dot.className = "dot online";
+        lbl.textContent = "drone connected";
+      } else if (s === "flying" || s === "scanning" || s === "landing") {
+        dot.className = "dot flying";
+        lbl.textContent = s + "...";
+      }
+    }
+
+    function setProgress(pct) {
+      document.getElementById("progress").style.width = pct + "%";
+    }
+
+    function renderStations() {
+      const grid = document.getElementById("station-grid");
+      grid.innerHTML = stations.map(s => {
+        const available = s.status === "mapped";
+        const selected = s.id === selectedId;
+
+        return `
+          <div class="station ${selected ? "selected" : ""} ${s.status === "unavailable" ? "unavailable" : ""}"
+               onclick="${available ? `selectStation(${s.id})` : ""}">
+            <div class="station-top">
+              <span class="station-name">${s.name}</span>
+              <span class="badge ${s.status}">${s.status === "mapped" ? "Mapped" : s.status === "unscanned" ? "Not scanned" : "Unavailable"}</span>
+            </div>
+            <div class="station-meta">
+              <div>ArUco ${s.aruco}</div>
+              ${s.pos
+                ? `<div>x ${s.pos.x.toFixed(2)} m · y ${s.pos.y.toFixed(2)} m</div>`
+                : `<div>position unknown</div>`}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      document.getElementById("m-mapped").textContent =
+        stations.filter(s => s.status === "mapped").length + " / " + stations.length;
+    }
+
+    function selectStation(id) {
+      if (missionState !== "idle") return;
+
+      selectedId = selectedId === id ? null : id;
+      renderStations();
+
+      document.getElementById("btn-dispatch").disabled = selectedId === null;
+      document.getElementById("m-target").textContent =
+        selectedId !== null ? stations.find(s => s.id === selectedId).name : "None";
+    }
+
+    function startScan() {
+      if (missionState !== "idle") return;
+
+      setState("scanning");
+      document.getElementById("btn-scan").disabled = true;
+      document.getElementById("btn-dispatch").disabled = true;
+      selectedId = null;
+      renderStations();
+
+      log("info", "Scan flight initiated — lawnmower pattern at 70 cm");
+
+      let p = 0;
+      progressInterval = setInterval(() => {
+        p += 6;
+        setProgress(Math.min(p, 100));
+
+        if (p === 24) log("ok", "ArUco ID 0 detected → Station A at (1.20, 0.45)");
+        if (p === 56) log("ok", "ArUco ID 1 detected → Station B at (-0.80, 1.10)");
+        if (p === 78) log("warn", "ArUco ID 2 — confidence too low, skipping");
+
+        if (p >= 100) {
+          clearInterval(progressInterval);
+          setState("idle");
+          document.getElementById("btn-scan").disabled = false;
+          setProgress(0);
+          log("ok", "Scan complete — 2 stations mapped, returning to origin");
+        }
+      }, 160);
+    }
+
+    function dispatch() {
+      if (selectedId === null || missionState !== "idle") return;
+
+      const t = stations.find(s => s.id === selectedId);
+
+      document.getElementById("btn-dispatch").disabled = true;
+      document.getElementById("btn-scan").disabled = true;
+      setState("flying");
+
+      log("info", `Dispatching to ${t.name} (ArUco ${t.aruco})`);
+      log("info", `Phase 1 — Vicon PD control → (${t.pos.x.toFixed(2)}, ${t.pos.y.toFixed(2)})`);
+
+      let p = 0;
+      let phase = 1;
+
+      progressInterval = setInterval(() => {
+        p += 4;
+        setProgress(Math.min(p, 100));
+
+        const frac = p / 100;
+        const x = (t.pos.x * frac).toFixed(2);
+        const y = (t.pos.y * frac).toFixed(2);
+        const z = p < 80 ? (0.70).toFixed(2) : (0.70 - (p - 80) * 0.028).toFixed(2);
+
+        document.getElementById("drone-pos").textContent =
+          `Vicon · x ${x} m · y ${y} m · z ${z} m`;
+
+        if (p >= 72 && phase === 1) {
+          phase = 2;
+          setState("landing");
+          log("info", "Within threshold — switching to ArUco precision landing");
+          log("ok", `Downward cam: ArUco ${t.aruco} confirmed`);
+        }
+
+        if (p === 88) log("info", "Centering — pixel offset (3, 6)");
+
+        if (p >= 100) {
+          clearInterval(progressInterval);
+          setState("idle");
+          selectedId = null;
+          renderStations();
+          document.getElementById("btn-scan").disabled = false;
+          document.getElementById("btn-dispatch").disabled = true;
+          document.getElementById("m-target").textContent = "None";
+          setProgress(0);
+          log("ok", `Landed at ${t.name} successfully`);
+          document.getElementById("drone-pos").textContent =
+            `Vicon · x ${t.pos.x.toFixed(2)} m · y ${t.pos.y.toFixed(2)} m · z 0.00 m`;
+        }
+      }, 150);
+    }
+
+    function abort() {
+      if (progressInterval) clearInterval(progressInterval);
+
+      setState("idle");
+      setProgress(0);
+      selectedId = null;
+      renderStations();
+
+      document.getElementById("btn-scan").disabled = false;
+      document.getElementById("btn-dispatch").disabled = true;
+      document.getElementById("m-target").textContent = "None";
+
+      log("err", "Mission aborted by operator");
+    }
+
+    async function pollStatus() {
+      try {
+        const res = await fetch("http://localhost:5000/status");
+        const data = await res.json();
+        if (missionState === "idle") {
+          document.getElementById("m-state").textContent =
+            data.state.charAt(0).toUpperCase() + data.state.slice(1);
+        }
+      } catch (_) {}
+    }
+
+    setInterval(pollStatus, 500);
+
+    setState("idle");
+    renderStations();
+    log("ok", "Dashboard loaded");
+    log("info", "Flask on :5000 — polling for real state");
+  </script>
+</body>
+</html>
