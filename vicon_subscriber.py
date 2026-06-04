@@ -40,9 +40,9 @@ except ImportError:
 
 
 # ── TODO: set these before lab ────────────────────────────────────────────────
-DRONE_SUBJECT = "DRONE_SUBJECT_NAME"   # e.g. "Tello" — ask lab instructor
-VICON_PC_IP   = "192.168.10.1"         # default from ros2-vicon-receiver docs
-TOPIC         = f"/vicon/{DRONE_SUBJECT}/{DRONE_SUBJECT}"
+DRONE_SUBJECT = "dronf4"
+VICON_PC_IP   = "192.168.1.23"         # default from ros2-vicon-receiver docs
+TOPIC = "/ubuntus_1/Ubuntus_1/Ubuntus_1"
 
 
 def quaternion_to_yaw_deg(qx, qy, qz, qw):

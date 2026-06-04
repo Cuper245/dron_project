@@ -10,7 +10,7 @@ import time
 import numpy as np
 from enum import Enum
 from pd_controller import PDController
-from vicon_subscriber import start_vicon_stub  # swap for start_vicon_thread in lab
+from vicon_subscriber import start_vicon_thread  # swap for start_vicon_thread in lab
 from queue import Empty
 import cv2
 
@@ -47,7 +47,7 @@ class MissionController:
 
         # shared dict updated by Vicon thread
         self.vicon = {}
-        start_vicon_stub(self.vicon)   # ← swap for start_vicon_thread(self.vicon) in lab
+        start_vicon_thread(self.vicon)   # ← swap for start_vicon_thread(self.vicon) in lab
 
         self.pd = PDController(
             Kp_xy=0.30, Kd_xy=0.10,
