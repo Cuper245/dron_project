@@ -26,6 +26,14 @@ def dispatch():
 def status():
     return jsonify({"state": mission.state.value, "target": mission.target_id})
 
+@app.route("/position", methods=["GET"])
+def position():
+    return jsonify({
+        "pos": mission.drone_pos,
+        "yaw": mission.drone_yaw,
+        "vicon_ok": mission.vicon.get("vicon_ok", False)
+    })
+
 # server.py  — add these lines at the very bottom
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    app.run(port=5000, debug=False)

@@ -5,6 +5,11 @@ State machine for the autonomous delivery mission.
 All drone-hardware calls are wrapped in methods so they can be
 stubbed out for offline testing (set OFFLINE_MODE = True below).
 """
+
+import sys
+sys.path.insert(0, '/opt/ros/humble/local/lib/python3.10/dist-packages')
+sys.path.insert(0, '/opt/ros/humble/lib/python3.10/site-packages')
+
 import os
 import time
 import numpy as np
@@ -13,6 +18,9 @@ from pd_controller import PDController
 from vicon_subscriber import start_vicon_thread  # swap for start_vicon_thread in lab
 from queue import Empty
 import cv2
+import cv2.aruco as aruco
+
+
 
 
 
@@ -67,11 +75,12 @@ class MissionController:
         import robomaster
         from robomaster import robot
 
-        import cv2.aruco as aruco
+        
 
-        robomaster.config.LOCAL_IP_STR = "192.168.10.2"
+        robomaster.config.LOCAL_IP_STR = "192.168.1.221"   # your laptop
+        robomaster.config.ROBOT_IP_STR = "192.168.1.84"
         self._tl_drone = robot.Drone()
-        self._tl_drone.initialize()
+        self._tl_drone.initialize(conn_type="sta")
         self._tl_flight = self._tl_drone.flight
         self._tl_camera = self._tl_drone.camera
         self._tl_camera.start_video_stream(display=False)

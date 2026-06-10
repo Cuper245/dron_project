@@ -1,17 +1,14 @@
-import robomaster
 from robomaster import robot
+import robomaster
 
-robomaster.config.LOCAL_IP_STR = "192.168.10.2"
+robomaster.config.LOCAL_IP_STR = '192.168.1.221'
+robomaster.config.ROBOT_IP_STR = '192.168.1.84'
 
-if __name__ == '__main__':
-    tl_drone = robot.Drone()
-    tl_drone.initialize()
+tl_drone = robot.Drone()
+tl_drone.initialize(conn_type='sta')
 
-    tl_flight = tl_drone.flight
-    # Get battery status
-    tl_battery = tl_drone.battery
-    battery_info = tl_battery.get_battery()
-    print("Drone battery soc: {0}".format(battery_info))
+tl_battery = tl_drone.battery
+battery_info = tl_battery.get_battery()
+print("Drone battery soc: {0}".format(battery_info))
 
-    # Close resources
-    tl_drone.close()
+tl_drone.close()

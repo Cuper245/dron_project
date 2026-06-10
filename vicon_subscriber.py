@@ -25,8 +25,15 @@ TODO before lab session:
     3. Run the echo command above to verify messages flow before running drone code
 """
 
+import sys
+sys.path.insert(0, '/opt/ros/humble/local/lib/python3.10/dist-packages')
+sys.path.insert(0, '/opt/ros/humble/lib/python3.10/site-packages')
+
 import threading
 import math
+import subprocess
+import threading
+import json
 
 # ── ROS2 imports ──────────────────────────────────────────────────────────────
 try:
@@ -42,7 +49,7 @@ except ImportError:
 # ── TODO: set these before lab ────────────────────────────────────────────────
 DRONE_SUBJECT = "dronf4"
 VICON_PC_IP   = "192.168.1.23"         # default from ros2-vicon-receiver docs
-TOPIC = "/ubuntus_1/Ubuntus_1/Ubuntus_1"
+TOPIC = "/vicon/dronf4/dronf4"
 
 
 def quaternion_to_yaw_deg(qx, qy, qz, qw):
@@ -80,36 +87,60 @@ if ROS2_AVAILABLE:
             self.shared["vicon_ok"]  = True
 
 
+
 def start_vicon_thread(shared_state: dict) -> threading.Thread:
-    """
-    Start Vicon subscriber in a background daemon thread.
-    shared_state is updated in-place as messages arrive:
-        shared["drone_pos"] → (x, y, z) metres
-        shared["drone_yaw"] → yaw in degrees
-        shared["vicon_ok"]  → True once first message received
+    import subprocess, threading
 
-    Swap in mission.py:
-        from vicon_subscriber import start_vicon_thread
-        start_vicon_thread(self.vicon)
-    """
-    if not ROS2_AVAILABLE:
-        print("[vicon] ROS2 not available — Vicon thread not started.")
-        return None
+    def _run():
+        proc = subprocess.Popen(
+            ['bash', '-c', '''
+source /opt/ros/humble/setup.bash
+source /home/oscar/ros2_ws/install/setup.bash
+/usr/bin/python3 -c "
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import PoseStamped
+import json, math
 
-    def _spin():
-        rclpy.init()
-        node = ViconSubscriber(shared_state)
-        try:
-            rclpy.spin(node)
-        finally:
-            node.destroy_node()
-            rclpy.shutdown()
+class V(Node):
+    def __init__(self):
+        super().__init__('vicon_bridge')
+        self.create_subscription(PoseStamped, '/vicon/dronf4/dronf4', self.cb, 10)
+    def cb(self, msg):
+        o = msg.pose.orientation
+        siny = 2*(o.w*o.z + o.x*o.y)
+        cosy = 1 - 2*(o.y*o.y + o.z*o.z)
+        yaw = math.degrees(math.atan2(siny, cosy))
+        d = {'x': msg.pose.position.x, 'y': msg.pose.position.y,
+             'z': msg.pose.position.z, 'yaw': yaw}
+        print(json.dumps(d), flush=True)
 
-    t = threading.Thread(target=_spin, daemon=True)
+rclpy.init()
+rclpy.spin(V())
+"
+'''],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+
+        def log_errors():
+            for line in proc.stderr:
+                print(f"[vicon err] {line.decode().strip()}")
+        threading.Thread(target=log_errors, daemon=True).start()
+
+        for line in proc.stdout:
+            try:
+                d = json.loads(line)
+                shared_state["drone_pos"] = (d["x"], d["y"], d["z"])
+                shared_state["drone_yaw"] = d.get("yaw", 0.0)
+                shared_state["vicon_ok"]  = True
+            except:
+                pass
+
+    t = threading.Thread(target=_run, daemon=True)
     t.start()
-    print(f"[vicon] Subscriber thread started — listening on {TOPIC}")
+    print("[vicon] Subprocess bridge started")
     return t
-
 
 # ── Offline / stub mode ───────────────────────────────────────────────────────
 def start_vicon_stub(shared_state: dict, pos=(0.0, 0.0, 0.7), yaw=0.0):
